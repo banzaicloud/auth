@@ -34,10 +34,7 @@ var (
 		UserModel: User{},
 		Redirector: &auth.Redirector{
 			redirect_back.New(&redirect_back.Config{
-				IgnoreFunc: func(r *http.Request) bool {
-					println("ignoring", r.RequestURI)
-					return true
-				},
+				IgnoredPrefixes: []string{"/dex/"},
 			})},
 	})
 )
