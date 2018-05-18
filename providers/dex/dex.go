@@ -17,15 +17,13 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const exampleAppState = "I wish to wash my irish wristwatch"
-
 // DexProvider provide login with dex method
 type DexProvider struct {
 	*Config
 	provider *oidc.Provider
 }
 
-// Config github Config
+// Config dex Config
 type Config struct {
 	ClientID         string
 	ClientSecret     string
@@ -67,36 +65,37 @@ func New(config *Config) *DexProvider {
 
 	provider.provider = dexProvider
 
-	verifier := dexProvider.Verifier(&oidc.Config{ClientID: config.ClientID})
-
 	if config.AuthorizeHandler == nil {
+
+		verifier := dexProvider.Verifier(&oidc.Config{ClientID: config.ClientID})
+
 		config.AuthorizeHandler = func(context *auth.Context) (*claims.Claims, error) {
 			var (
 				schema       auth.Schema
 				authInfo     auth_identity.Basic
+				err          error
+				token        *oauth2.Token
 				authIdentity = reflect.New(utils.ModelType(context.Auth.Config.AuthIdentityModel)).Interface()
 				req          = context.Request
 				tx           = context.Auth.GetDB(req)
 				w            = context.Writer
 			)
 
-			var (
-				err   error
-				token *oauth2.Token
-			)
-
 			ctx := oidc.ClientContext(req.Context(), http.DefaultClient)
 			oauth2Config := provider.OAuthConfig(context)
+
 			switch req.Method {
 			case "GET":
 				// Authorization redirect callback from OAuth2 auth flow.
 				if errMsg := req.FormValue("error"); errMsg != "" {
-					http.Error(w, errMsg+": "+req.FormValue("error_description"), http.StatusBadRequest)
+					err = errors.New(errMsg + ": " + req.FormValue("error_description"))
+					http.Error(w, err.Error(), http.StatusBadRequest)
 					return nil, err
 				}
 				code := req.FormValue("code")
 				if code == "" {
-					http.Error(w, fmt.Sprintf("no code in request: %q", req.Form), http.StatusBadRequest)
+					err = fmt.Errorf("no code in request: %q", req.Form)
+					http.Error(w, err.Error(), http.StatusBadRequest)
 					return nil, err
 				}
 				state := req.FormValue("state")
@@ -151,9 +150,15 @@ func New(config *Config) *DexProvider {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return nil, err
 			}
+
 			var claims jwt.MapClaims
 			err = idToken.Claims(&claims)
-			// TODO error handling
+			if err != nil {
+				err = fmt.Errorf("Failed to parse claims: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return nil, err
+			}
+
 			fmt.Printf("Claims: %#v\n", claims)
 
 			authInfo.Provider = provider.GetName()
@@ -220,7 +225,7 @@ func (provider DexProvider) OAuthConfig(context *auth.Context) *oauth2.Config {
 	}
 }
 
-// Login implemented login with github provider
+// Login implemented login with dex provider
 func (provider DexProvider) Login(context *auth.Context) {
 	claims := claims.Claims{}
 	claims.Subject = "state"
@@ -230,20 +235,20 @@ func (provider DexProvider) Login(context *auth.Context) {
 	http.Redirect(context.Writer, context.Request, url, http.StatusFound)
 }
 
-// Logout implemented logout with github provider
+// Logout implemented logout with dex provider
 func (DexProvider) Logout(context *auth.Context) {
 }
 
-// Register implemented register with github provider
+// Register implemented register with dex provider
 func (provider DexProvider) Register(context *auth.Context) {
 	provider.Login(context)
 }
 
-// Callback implement Callback with github provider
+// Callback implement Callback with dex provider
 func (provider DexProvider) Callback(context *auth.Context) {
 	context.Auth.LoginHandler(context, provider.AuthorizeHandler)
 }
 
-// ServeHTTP implement ServeHTTP with github provider
+// ServeHTTP implement ServeHTTP with dex provider
 func (DexProvider) ServeHTTP(*auth.Context) {
 }
