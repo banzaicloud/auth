@@ -4,15 +4,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/qor/redirect_back"
-	"github.com/qor/roles"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/qor/auth"
 	"github.com/qor/auth/auth_identity"
 	"github.com/qor/auth/authority"
 	"github.com/qor/auth/providers/dex"
+	"github.com/qor/redirect_back"
+	"github.com/qor/roles"
 	"github.com/qor/session/manager"
 )
 
