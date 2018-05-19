@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"github.com/qor/redirect_back"
+	"github.com/qor/roles"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/qor/auth"
 	"github.com/qor/auth/auth_identity"
+	"github.com/qor/auth/authority"
 	"github.com/qor/auth/providers/dex"
 	"github.com/qor/session/manager"
 )
@@ -37,6 +39,14 @@ var (
 				IgnoredPrefixes: []string{"/dex/"},
 			})},
 	})
+
+	Authority = authority.New(&authority.Config{
+		Auth: Auth,
+		Role: roles.Global, // default configuration
+		AccessDeniedHandler: func(w http.ResponseWriter, req *http.Request) { // redirect to auth page by default
+			http.Redirect(w, req, "/auth/dex/login", http.StatusSeeOther)
+		},
+	})
 )
 
 func init() {
@@ -54,10 +64,17 @@ func init() {
 	Auth.RegisterProvider(dexProvider)
 }
 
+type indexHandler struct{}
+
+func (indexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Hello logged in user"))
+}
+
 func main() {
 	mux := http.NewServeMux()
 
 	// Mount Auth to Router
 	mux.Handle("/auth/", Auth.NewServeMux())
+	mux.Handle("/", Authority.Authorize()(indexHandler{}))
 	http.ListenAndServe(":9000", manager.SessionManager.Middleware(mux))
 }
