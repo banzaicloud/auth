@@ -53,7 +53,7 @@ func New(config *Config) *DexProvider {
 	}
 
 	if config.Scopes == nil {
-		config.Scopes = []string{"openid", "profile", "email", "federated:id"}
+		config.Scopes = []string{oidc.ScopeOpenID, "profile", "email", "groups", "federated:id"}
 	}
 
 	// TODO(ericchiang): Retry with backoff
