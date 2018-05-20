@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/qor/auth"
@@ -29,15 +30,23 @@ var (
 	// Initialize gorm DB
 	gormDB, _ = gorm.Open("sqlite3", "sample.db")
 
-	// Initialize Auth with configuration
-	Auth = auth.New(&auth.Config{
+	authConfig = auth.Config{
 		DB:        gormDB,
 		UserModel: User{},
 		Redirector: &auth.Redirector{
 			redirect_back.New(&redirect_back.Config{
 				IgnoredPrefixes: []string{"/dex/"},
 			})},
-	})
+		SessionStorer: &auth.SessionStorer{
+			SessionName:    "_auth_session",
+			SessionManager: manager.SessionManager,
+			SigningMethod:  jwt.SigningMethodHS256,
+			SignedString:   "s3cr3tRandomSigningKey",
+		},
+	}
+
+	// Initialize Auth with configuration
+	Auth = auth.New(&authConfig)
 
 	Authority = authority.New(&authority.Config{
 		Auth: Auth,
