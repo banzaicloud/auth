@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -75,7 +76,15 @@ func init() {
 type indexHandler struct{}
 
 func (indexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello logged in user"))
+	data, err := json.Marshal(Auth.GetCurrentUser(r))
+	if err != nil {
+		panic(err)
+	}
+	w.Header().Add("Content-Type", "application/json")
+	_, err = w.Write(data)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func main() {
