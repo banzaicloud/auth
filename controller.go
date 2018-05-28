@@ -64,8 +64,8 @@ func (serveMux *serveMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			// render register page
 			serveMux.Auth.Render.Execute("auth/register", context, req, w)
 		case "deregister":
-			// render unregister page
-			serveMux.Auth.Render.Execute("auth/deregister", context, req, w)
+			// remove user from database
+			serveMux.Auth.DeregisterHandler(context)
 		case "logout":
 			// destroy login context
 			serveMux.Auth.LogoutHandler(context)
