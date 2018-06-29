@@ -87,6 +87,7 @@ func (indexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Visit http://127.0.0.1:9000/auth/dex/login to login
 func main() {
 	mux := http.NewServeMux()
 

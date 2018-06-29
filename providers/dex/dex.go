@@ -173,7 +173,6 @@ func New(config *Config) *DexProvider {
 				schema.UID = claims["sub"].(string)
 				schema.Name = claims["name"].(string)
 				schema.Email = claims["email"].(string)
-				//schema.Image = user.GetAvatarURL()
 				schema.RawInfo = claims
 			}
 			if _, userID, err := context.Auth.UserStorer.Save(&schema, context); err == nil {
@@ -242,6 +241,11 @@ func (DexProvider) Logout(context *auth.Context) {
 // Register implemented register with dex provider
 func (provider DexProvider) Register(context *auth.Context) {
 	provider.Login(context)
+}
+
+// Deregister implemented deregister with dex provider
+func (provider DexProvider) Deregister(context *auth.Context) {
+	panic("Not implemented")
 }
 
 // Callback implement Callback with dex provider
