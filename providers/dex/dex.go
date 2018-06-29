@@ -161,7 +161,7 @@ func New(config *Config) *DexProvider {
 
 			fmt.Printf("Claims: %#v\n", claims)
 
-			authInfo.Provider = provider.GetName()
+			authInfo.Provider = "dex-" + provider.GetName()
 			authInfo.UID = claims["sub"].(string) // Dex identifier
 
 			if !tx.Model(authIdentity).Where(authInfo).Scan(&authInfo).RecordNotFound() {
