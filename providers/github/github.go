@@ -143,7 +143,11 @@ func (provider GithubProvider) OAuthConfig(context *auth.Context) *oauth2.Config
 	)
 
 	if scheme == "" {
-		scheme = "http://"
+		if req.TLS == nil {
+			scheme = "http://"
+		} else {
+			scheme = "https://"
+		}
 	}
 
 	return &oauth2.Config{

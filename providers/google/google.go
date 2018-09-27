@@ -146,11 +146,16 @@ func (provider GoogleProvider) ConfigAuth(*auth.Auth) {
 func (provider GoogleProvider) OAuthConfig(context *auth.Context) *oauth2.Config {
 	var (
 		config = provider.Config
+		req    = context.Request
 		scheme = context.Request.URL.Scheme
 	)
 
 	if scheme == "" {
-		scheme = "http://"
+		if req.TLS == nil {
+			scheme = "http://"
+		} else {
+			scheme = "https://"
+		}
 	}
 
 	return &oauth2.Config{
@@ -160,7 +165,7 @@ func (provider GoogleProvider) OAuthConfig(context *auth.Context) *oauth2.Config
 			AuthURL:  config.AuthorizeURL,
 			TokenURL: config.TokenURL,
 		},
-		RedirectURL: scheme + context.Request.Host + context.Auth.AuthURL("google/callback"),
+		RedirectURL: scheme + req.Host + context.Auth.AuthURL("google/callback"),
 		Scopes:      config.Scopes,
 	}
 }

@@ -152,31 +152,36 @@ func (provider Provider) NewConsumer(context *auth.Context) *oauth.Consumer {
 func (provider Provider) Login(context *auth.Context) {
 	var (
 		scheme   = context.Request.URL.Scheme
+		req      = context.Request
 		consumer = provider.NewConsumer(context)
 	)
 
 	if scheme == "" {
-		scheme = "http://"
+		if req.TLS == nil {
+			scheme = "http://"
+		} else {
+			scheme = "https://"
+		}
 	}
 
-	requestToken, u, err := consumer.GetRequestTokenAndUrl(scheme + context.Request.Host + context.Auth.AuthURL("twitter/callback"))
+	requestToken, u, err := consumer.GetRequestTokenAndUrl(scheme + req.Host + context.Auth.AuthURL("twitter/callback"))
 
 	if err == nil {
 		// save requestToken into session
 		Claims := &claims.Claims{}
-		if c, err := provider.Auth.Get(context.Request); err == nil {
+		if c, err := provider.Auth.Get(req); err == nil {
 			Claims = c
 		}
 		tokenStr, _ := json.Marshal(requestToken)
 		Claims.Issuer = string(tokenStr)
-		provider.Auth.Update(context.Writer, context.Request, Claims)
+		provider.Auth.Update(context.Writer, req, Claims)
 
-		http.Redirect(context.Writer, context.Request, u, http.StatusFound)
+		http.Redirect(context.Writer, req, u, http.StatusFound)
 		return
 	}
 
-	context.SessionStorer.Flash(context.Writer, context.Request, session.Message{Message: template.HTML(err.Error()), Type: "error"})
-	context.Auth.Config.Render.Execute("auth/login", context, context.Request, context.Writer)
+	context.SessionStorer.Flash(context.Writer, req, session.Message{Message: template.HTML(err.Error()), Type: "error"})
+	context.Auth.Config.Render.Execute("auth/login", context, req, context.Writer)
 }
 
 // Logout implemented logout with twitter provider
