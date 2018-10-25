@@ -13,12 +13,15 @@ import (
 // UserStorerInterface user storer interface
 type UserStorerInterface interface {
 	Save(schema *Schema, context *Context) (user interface{}, userID string, err error)
+	Update(schema *Schema, context *Context) error
 	Get(claims *claims.Claims, context *Context) (user interface{}, err error)
 }
 
 // UserStorer default user storer
 type UserStorer struct {
 }
+
+var _ UserStorerInterface = UserStorer{}
 
 // Get defined how to get user with user id
 func (UserStorer) Get(Claims *claims.Claims, context *Context) (user interface{}, err error) {
@@ -72,4 +75,9 @@ func (UserStorer) Save(schema *Schema, context *Context) (user interface{}, user
 		return currentUser, fmt.Sprint(tx.NewScope(currentUser).PrimaryKeyValue()), err
 	}
 	return nil, "", nil
+}
+
+// Update by default doesn't do anything and let's users customize how to update based on provider information
+func (UserStorer) Update(schema *Schema, context *Context) (err error) {
+	return nil
 }
