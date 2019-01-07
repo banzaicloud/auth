@@ -166,12 +166,17 @@ func New(config *Config) *DexProvider {
 				return nil, err
 			}
 
+			// Check if authInfo exists with the backend connector already
 			authInfo.Provider = claims.FederatedClaims["connector_id"]
 			authInfo.UID = claims.FederatedClaims["user_id"]
 
 			if !tx.Model(authIdentity).Where(authInfo).Scan(&authInfo).RecordNotFound() {
 				return authInfo.ToClaims(), nil
 			}
+
+			// If not, create one with Dex
+			authInfo.Provider = "dex-" + claims.FederatedClaims["connector_id"]
+			authInfo.UID = claims.Subject
 
 			{
 				schema.Provider = provider.GetName()
