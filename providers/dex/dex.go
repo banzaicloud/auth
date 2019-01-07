@@ -8,8 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/coreos/go-oidc"
-	jwt "github.com/dgrijalva/jwt-go"
+	oidc "github.com/coreos/go-oidc"
 	"github.com/qor/auth"
 	"github.com/qor/auth/auth_identity"
 	"github.com/qor/auth/claims"
@@ -151,7 +150,15 @@ func New(config *Config) *DexProvider {
 				return nil, err
 			}
 
-			var claims jwt.MapClaims
+			var claims struct {
+				Subject         string            `json:"sub"`
+				Name            string            `json:"name"`
+				Email           string            `json:"email"`
+				Verified        bool              `json:"email_verified"`
+				Groups          []string          `json:"groups"`
+				FederatedClaims map[string]string `json:"federated_claims"`
+			}
+
 			err = idToken.Claims(&claims)
 			if err != nil {
 				err = fmt.Errorf("Failed to parse claims: %v", err)
@@ -159,10 +166,8 @@ func New(config *Config) *DexProvider {
 				return nil, err
 			}
 
-			fmt.Printf("Claims: %#v\n", claims)
-
-			authInfo.Provider = "dex-" + provider.GetName()
-			authInfo.UID = claims["sub"].(string) // Dex identifier
+			authInfo.Provider = claims.FederatedClaims["connector_id"]
+			authInfo.UID = claims.FederatedClaims["user_id"]
 
 			if !tx.Model(authIdentity).Where(authInfo).Scan(&authInfo).RecordNotFound() {
 				return authInfo.ToClaims(), nil
@@ -170,9 +175,9 @@ func New(config *Config) *DexProvider {
 
 			{
 				schema.Provider = provider.GetName()
-				schema.UID = claims["sub"].(string)
-				schema.Name = claims["name"].(string)
-				schema.Email = claims["email"].(string)
+				schema.UID = claims.Subject
+				schema.Name = claims.Name
+				schema.Email = claims.Email
 				schema.RawInfo = claims
 			}
 			if _, userID, err := context.Auth.UserStorer.Save(&schema, context); err == nil {

@@ -94,5 +94,6 @@ func main() {
 	// Mount Auth to Router
 	mux.Handle("/auth/", Auth.NewServeMux())
 	mux.Handle("/", Authority.Authorize()(indexHandler{}))
+	println("Server is running on :9000")
 	http.ListenAndServe(":9000", manager.SessionManager.Middleware(mux))
 }
