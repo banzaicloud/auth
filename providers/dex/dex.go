@@ -1,7 +1,7 @@
 package dex
 
 import (
-	"context"
+	gocontext "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -15,6 +15,9 @@ import (
 	"github.com/qor/qor/utils"
 	"golang.org/x/oauth2"
 )
+
+// SignUp is present if the current request is a signing up
+var SignUp utils.ContextKey = "signUp"
 
 // DexProvider provide login with dex method
 type DexProvider struct {
@@ -56,7 +59,7 @@ func New(config *Config) *DexProvider {
 	}
 
 	// TODO(ericchiang): Retry with backoff
-	ctx := oidc.ClientContext(context.Background(), http.DefaultClient)
+	ctx := oidc.ClientContext(gocontext.Background(), http.DefaultClient)
 	dexProvider, err := oidc.NewProvider(ctx, provider.IssuerURL)
 	if err != nil {
 		panic(fmt.Errorf("Failed to query provider %q: %v", provider.IssuerURL, err))
@@ -173,6 +176,8 @@ func New(config *Config) *DexProvider {
 			if !tx.Model(authIdentity).Where(authInfo).Scan(&authInfo).RecordNotFound() {
 				return authInfo.ToClaims(), nil
 			}
+
+			context.Request = req.WithContext(gocontext.WithValue(req.Context(), SignUp, true))
 
 			// If not, create one with Dex
 			authInfo.Provider = "dex-" + claims.FederatedClaims["connector_id"]
