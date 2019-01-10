@@ -177,11 +177,16 @@ func New(config *Config) *DexProvider {
 				return authInfo.ToClaims(), nil
 			}
 
-			context.Request = req.WithContext(gocontext.WithValue(req.Context(), SignUp, true))
-
-			// If not, create one with Dex
+			// Check if authInfo exists with Dex
 			authInfo.Provider = "dex-" + claims.FederatedClaims["connector_id"]
 			authInfo.UID = claims.Subject
+
+			if !tx.Model(authIdentity).Where(authInfo).Scan(&authInfo).RecordNotFound() {
+				return authInfo.ToClaims(), nil
+			}
+
+			// Create a new account otherwise
+			context.Request = req.WithContext(gocontext.WithValue(req.Context(), SignUp, true))
 
 			{
 				schema.Provider = provider.GetName()
