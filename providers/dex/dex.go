@@ -178,7 +178,7 @@ func New(config *Config) *DexProvider {
 			}
 
 			// Check if authInfo exists with Dex
-			authInfo.Provider = "dex-" + claims.FederatedClaims["connector_id"]
+			authInfo.Provider = "dex:" + claims.FederatedClaims["connector_id"]
 			authInfo.UID = claims.Subject
 
 			if !tx.Model(authIdentity).Where(authInfo).Scan(&authInfo).RecordNotFound() {
@@ -189,7 +189,7 @@ func New(config *Config) *DexProvider {
 			context.Request = req.WithContext(gocontext.WithValue(req.Context(), SignUp, true))
 
 			{
-				schema.Provider = provider.GetName()
+				schema.Provider = authInfo.Provider
 				schema.UID = claims.Subject
 				schema.Name = claims.Name
 				schema.Email = claims.Email
