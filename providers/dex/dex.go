@@ -139,6 +139,12 @@ func New(config *Config) *DexProvider {
 				return nil, err
 			}
 
+			if token == nil {
+				err = fmt.Errorf("no token in response")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return nil, err
+			}
+
 			rawIDToken, ok := token.Extra("id_token").(string)
 			if !ok {
 				err = fmt.Errorf("no id_token in token response")
