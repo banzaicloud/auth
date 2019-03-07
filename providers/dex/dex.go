@@ -58,11 +58,11 @@ func New(config *Config) *DexProvider {
 		config.Scopes = []string{oidc.ScopeOpenID, "profile", "email", "groups", "federated:id"}
 	}
 
-	// TODO(ericchiang): Retry with backoff
+	// TODO Retry with backoff
 	ctx := oidc.ClientContext(gocontext.Background(), http.DefaultClient)
 	dexProvider, err := oidc.NewProvider(ctx, provider.IssuerURL)
 	if err != nil {
-		panic(fmt.Errorf("Failed to query provider %q: %v", provider.IssuerURL, err))
+		panic(fmt.Errorf("Failed to query provider %q: %s", provider.IssuerURL, err.Error()))
 	}
 
 	provider.provider = dexProvider
@@ -102,13 +102,24 @@ func New(config *Config) *DexProvider {
 				}
 				state := req.FormValue("state")
 
-				claims, err := context.Auth.SessionStorer.ValidateClaims(state)
+				var claims *claims.Claims
 
-				if err != nil || claims.Valid() != nil || claims.Subject != "state" {
-					return nil, auth.ErrUnauthorized
+				claims, err = context.Auth.SessionStorer.ValidateClaims(state)
+				if err != nil {
+					err = fmt.Errorf("failed to validate state claims: %s", err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return nil, err
 				}
 
-				if err != nil {
+				if err := claims.Valid(); err != nil {
+					err = fmt.Errorf("failed to validate state claims: %s", err.Error())
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return nil, err
+				}
+
+				if claims.Subject != "state" {
+					err = fmt.Errorf("state parameter doesn't match: %s", claims.Subject)
+					http.Error(w, err.Error(), http.StatusBadRequest)
 					return nil, err
 				}
 
@@ -134,13 +145,7 @@ func New(config *Config) *DexProvider {
 			}
 
 			if err != nil {
-				err = fmt.Errorf("failed to get token: %v", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return nil, err
-			}
-
-			if token == nil {
-				err = fmt.Errorf("no token in response")
+				err = fmt.Errorf("failed to get token: %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return nil, err
 			}
@@ -154,7 +159,7 @@ func New(config *Config) *DexProvider {
 
 			idToken, err := verifier.Verify(req.Context(), rawIDToken)
 			if err != nil {
-				err = fmt.Errorf("Failed to verify ID token: %v", err)
+				err = fmt.Errorf("Failed to verify ID token: %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return nil, err
 			}
@@ -170,7 +175,7 @@ func New(config *Config) *DexProvider {
 
 			err = idToken.Claims(&claims)
 			if err != nil {
-				err = fmt.Errorf("Failed to parse claims: %v", err)
+				err = fmt.Errorf("failed to parse claims: %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return nil, err
 			}
