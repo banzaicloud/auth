@@ -2,6 +2,7 @@ package dex
 
 import (
 	gocontext "context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -27,12 +28,13 @@ type DexProvider struct {
 
 // Config dex Config
 type Config struct {
-	ClientID         string
-	ClientSecret     string
-	IssuerURL        string
-	RedirectURL      string
-	Scopes           []string
-	AuthorizeHandler func(*auth.Context) (*claims.Claims, error)
+	ClientID           string
+	ClientSecret       string
+	IssuerURL          string
+	InsecureSkipVerify bool
+	RedirectURL        string
+	Scopes             []string
+	AuthorizeHandler   func(*auth.Context) (*claims.Claims, error)
 }
 
 func New(config *Config) *DexProvider {
@@ -58,8 +60,15 @@ func New(config *Config) *DexProvider {
 		config.Scopes = []string{oidc.ScopeOpenID, "profile", "email", "groups", "federated:id"}
 	}
 
-	// TODO Retry with backoff
-	ctx := oidc.ClientContext(gocontext.Background(), http.DefaultClient)
+	httpClient := http.Client{
+		Timeout: time.Second * 10,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: config.InsecureSkipVerify,
+			},
+		},
+	}
+	ctx := oidc.ClientContext(gocontext.Background(), &httpClient)
 	dexProvider, err := oidc.NewProvider(ctx, provider.IssuerURL)
 	if err != nil {
 		panic(fmt.Errorf("Failed to query provider %q: %s", provider.IssuerURL, err.Error()))
