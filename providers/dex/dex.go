@@ -92,7 +92,7 @@ func New(config *Config) *DexProvider {
 				w            = context.Writer
 			)
 
-			ctx := oidc.ClientContext(req.Context(), http.DefaultClient)
+			ctx := oidc.ClientContext(req.Context(), &httpClient)
 			oauth2Config := provider.OAuthConfig(context)
 
 			switch req.Method {
