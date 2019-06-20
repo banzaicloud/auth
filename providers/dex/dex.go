@@ -69,7 +69,7 @@ func New(config *Config) *DexProvider {
 		},
 	}
 	ctx := oidc.ClientContext(gocontext.Background(), &httpClient)
-	dexProvider, err := oidc.NewProvider(ctx, provider.IssuerURL)
+	dexProvider, err := oidc.NewProvider(gocontext.WithValue(ctx, "skipIssuerCheck", true), provider.IssuerURL)
 	if err != nil {
 		panic(fmt.Errorf("Failed to query provider %q: %s", provider.IssuerURL, err.Error()))
 	}
