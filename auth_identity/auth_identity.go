@@ -27,7 +27,7 @@ type Basic struct {
 func (basic Basic) ToClaims() *claims.Claims {
 	claims := claims.Claims{}
 	claims.Provider = basic.Provider
-	claims.Id = basic.UID
+	claims.ID = basic.UID
 	claims.UserID = basic.UserID
 	return &claims
 }

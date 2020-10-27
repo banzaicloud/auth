@@ -1,13 +1,13 @@
 package auth
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
+	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/qor/auth/claims"
 	"github.com/qor/session"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 // SessionStorerInterface session storer interface for Auth
@@ -25,7 +25,7 @@ type SessionStorerInterface interface {
 	Flashes(w http.ResponseWriter, req *http.Request) []session.Message
 
 	// SignedToken generate signed token with Claims
-	SignedToken(claims *claims.Claims) string
+	SignedToken(claims *claims.Claims) (string, error)
 	// ValidateClaims validate auth token
 	ValidateClaims(tokenString string) (*claims.Claims, error)
 }
@@ -33,7 +33,7 @@ type SessionStorerInterface interface {
 // SessionStorer default session storer
 type SessionStorer struct {
 	SessionName    string
-	SigningMethod  jwt.SigningMethod
+	SigningMethod  jose.SignatureAlgorithm
 	SignedString   string
 	SessionManager session.ManagerInterface
 }
@@ -52,7 +52,10 @@ func (sessionStorer *SessionStorer) Get(req *http.Request) (*claims.Claims, erro
 
 // Update update claims with session manager
 func (sessionStorer *SessionStorer) Update(w http.ResponseWriter, req *http.Request, claims *claims.Claims) error {
-	token := sessionStorer.SignedToken(claims)
+	token, err := sessionStorer.SignedToken(claims)
+	if err != nil {
+		return err
+	}
 	return sessionStorer.SessionManager.Add(w, req, sessionStorer.SessionName, token)
 }
 
@@ -73,28 +76,30 @@ func (sessionStorer *SessionStorer) Flashes(w http.ResponseWriter, req *http.Req
 }
 
 // SignedToken generate signed token with Claims
-func (sessionStorer *SessionStorer) SignedToken(claims *claims.Claims) string {
-	token := jwt.NewWithClaims(sessionStorer.SigningMethod, claims)
-	signedToken, _ := token.SignedString([]byte(sessionStorer.SignedString))
+func (sessionStorer *SessionStorer) SignedToken(claims *claims.Claims) (string, error) {
+	signer, err := jose.NewSigner(jose.SigningKey{
+		Algorithm: sessionStorer.SigningMethod,
+		Key:       []byte(sessionStorer.SignedString),
+	}, nil)
+	if err != nil {
+		return "", err
+	}
 
-	return signedToken
+	return jwt.Signed(signer).Claims(claims).CompactSerialize()
 }
 
 // ValidateClaims validate auth token
 func (sessionStorer *SessionStorer) ValidateClaims(tokenString string) (*claims.Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &claims.Claims{}, func(token *jwt.Token) (interface{}, error) {
-		if token.Method != sessionStorer.SigningMethod {
-			return nil, fmt.Errorf("unexpected signing method")
-		}
-		return []byte(sessionStorer.SignedString), nil
-	})
-
+	token, err := jwt.ParseSigned(tokenString)
 	if err != nil {
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*claims.Claims); ok && token.Valid {
-		return claims, nil
+	var claims claims.Claims
+	err = token.Claims([]byte(sessionStorer.SignedString), &claims)
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("invalid token")
+
+	return &claims, claims.Validate(jwt.Expected{Time: time.Now()})
 }
