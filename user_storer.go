@@ -41,7 +41,7 @@ func (UserStorer) Get(Claims *claims.Claims, context *Context) (user interface{}
 		authIdentity = reflect.New(utils.ModelType(context.Auth.Config.AuthIdentityModel)).Interface()
 		authInfo     = auth_identity.Basic{
 			Provider: Claims.Provider,
-			UID:      Claims.Id,
+			UID:      Claims.ID,
 		}
 	)
 

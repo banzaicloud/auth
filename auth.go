@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	"github.com/qor/auth/auth_identity"
 	"github.com/qor/auth/claims"
@@ -13,6 +12,7 @@ import (
 	"github.com/qor/redirect_back"
 	"github.com/qor/render"
 	"github.com/qor/session/manager"
+	"gopkg.in/square/go-jose.v2"
 )
 
 // Auth auth struct
@@ -91,7 +91,7 @@ func New(config *Config) *Auth {
 		config.SessionStorer = &SessionStorer{
 			SessionName:    "_auth_session",
 			SessionManager: manager.SessionManager,
-			SigningMethod:  jwt.SigningMethodHS256,
+			SigningMethod:  jose.HS256,
 		}
 	}
 

@@ -3,7 +3,7 @@ package claims
 import (
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 // Claims auth claims
@@ -13,7 +13,7 @@ type Claims struct {
 	LastLoginAt                      *time.Time     `json:"last_login,omitempty"`
 	LastActiveAt                     *time.Time     `json:"last_active,omitempty"`
 	LongestDistractionSinceLastLogin *time.Duration `json:"distraction_time,omitempty"`
-	jwt.StandardClaims
+	jwt.Claims
 }
 
 // ToClaims implement ClaimerInterface
