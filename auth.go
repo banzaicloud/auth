@@ -9,7 +9,6 @@ import (
 	"github.com/qor/auth/claims"
 	"github.com/qor/mailer"
 	"github.com/qor/mailer/logger"
-	"github.com/qor/redirect_back"
 	"github.com/qor/render"
 	"github.com/qor/session/manager"
 	"gopkg.in/square/go-jose.v2"
@@ -96,10 +95,7 @@ func New(config *Config) *Auth {
 	}
 
 	if config.Redirector == nil {
-		config.Redirector = &Redirector{redirect_back.New(&redirect_back.Config{
-			SessionManager:  manager.SessionManager,
-			IgnoredPrefixes: []string{config.URLPrefix},
-		})}
+		panic("config.Redirector must be specified")
 	}
 
 	if config.LoginHandler == nil {

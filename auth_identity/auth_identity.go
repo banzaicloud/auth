@@ -11,7 +11,6 @@ import (
 type AuthIdentity struct {
 	gorm.Model
 	Basic
-	SignLogs
 }
 
 // Basic basic information about auth identity
